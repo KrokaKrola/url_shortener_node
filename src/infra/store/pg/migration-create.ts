@@ -1,7 +1,12 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+import { initLogger } from '../../logger/logger';
+import { appConfig } from '../../config/config';
+
+const logger = initLogger(appConfig.infra.logger).child({ module: 'migration-create' });
 
 const createMigration = async (migrationName: string) => {
+  logger.info(`Creating migration ${migrationName}...`);
   const timestamp = new Date().getTime();
   const migrationFileName = `${timestamp}_${migrationName}.ts`;
   const migrationFilePath = path.join(__dirname, '/migrations', migrationFileName);
@@ -16,10 +21,12 @@ export async function down(db: Kysely<any>): Promise<void> {
 `;
 
   await fs.writeFile(migrationFilePath, migrationFileContent);
+
+  logger.info(`Created migration ${migrationName}`);
 };
 
 if (!process.env.NAME) {
-  console.error('NAME env variable is required');
+  logger.error('NAME env variable is required');
   process.exit(1);
 }
 
