@@ -5,9 +5,11 @@ import { AppLogger } from '../../logger/logger';
 import path from 'node:path';
 import { promises as fs } from 'fs';
 
-export interface IPostgresStore {
+interface IPostgresStore {
   link: LinkTable;
 }
+
+export type AppDatabase = Kysely<IPostgresStore>;
 
 export class PostgresStore {
   private readonly dialect: PostgresDialect;

@@ -1,5 +1,7 @@
 import { default as fastify, FastifyBaseLogger, FastifyInstance } from 'fastify';
 import { AppLogger } from '../logger/logger';
+import { ApiV1 } from './api-v1';
+import { IApp } from '../../server';
 
 export type ApiConfig = {
   port: number;
@@ -8,32 +10,14 @@ export type ApiConfig = {
 export class Api {
   private readonly fastify: FastifyInstance;
 
-  constructor(private readonly config: ApiConfig, private readonly logger: AppLogger) {
+  constructor(private readonly config: ApiConfig, private readonly logger: AppLogger, app: IApp) {
     this.fastify = fastify({
       logger: logger as FastifyBaseLogger,
+      exposeHeadRoutes: false,
     });
 
-    // this.initRoutes();
-    // this.initMiddlewares();
+    this.fastify.register(new ApiV1().init(app));
   }
-
-  // private initRoutes() {
-  //   const apiV1Handler = new ApiV1Handler();
-  //   const healthHandler = new ApiHealthHandler();
-
-  //   // this.fastify.addHook('onRoute', (routeOptions) => {
-  //   //   if (routeOptions.method === 'HEAD') {
-  //   //     return;
-  //   //   }
-
-  //   //   this.fastify.log.info(`Registered route: ${routeOptions.method} ${routeOptions.url}`);
-  //   // });
-
-  //   this.fastify.register(healthHandler.initRoutes, { prefix: '/health' });
-  //   this.fastify.register(apiV1Handler.initRoutes, { prefix: '/api/v1' });
-  // }
-
-  // private initMiddlewares() {}
 
   async listen() {
     await this.fastify.listen({ port: this.config.port });
