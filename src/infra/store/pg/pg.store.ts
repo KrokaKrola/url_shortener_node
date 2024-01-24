@@ -1,7 +1,9 @@
-import { Kysely, PostgresDialect } from 'kysely';
+import { FileMigrationProvider, Kysely, Migrator, PostgresDialect } from 'kysely';
 import { Pool } from 'pg';
 import { LinkTable } from '../../../domain/link/entity/link.interface';
 import { AppLogger } from '../../logger/logger';
+import path from 'node:path';
+import { promises as fs } from 'fs';
 
 export interface IPostgresStore {
   link: LinkTable;
@@ -14,17 +16,20 @@ export class PostgresStore {
 
   private readonly logger: AppLogger;
 
+  private readonly migrator: Migrator;
+
   constructor(logger: AppLogger) {
     const pool = new Pool({
-      database: 'test',
-      host: 'localhost',
-      user: 'admin',
-      port: 5434,
-      max: 10,
+      connectionString:
+        'postgresql://u_url_shortener_user:u_url_shortener_password@localhost:5432/url_shortener?sslmode=disable',
     });
 
-    pool.on('error', (err) => {
-      logger.error(err);
+    pool.query('SELECT NOW()', (err, res) => {
+      if (err) {
+        logger.error(err);
+      } else {
+        logger.info(`Connected to database at ${res.rows[0].now}`);
+      }
     });
 
     this.dialect = new PostgresDialect({
@@ -35,6 +40,15 @@ export class PostgresStore {
       dialect: this.dialect,
     });
 
+    this.migrator = new Migrator({
+      db: this.db,
+      provider: new FileMigrationProvider({
+        fs,
+        path,
+        migrationFolder: path.join(__dirname, '/migrations'),
+      }),
+    });
+
     this.logger = logger;
   }
 
@@ -42,8 +56,32 @@ export class PostgresStore {
     return this.db;
   }
 
+  public get migratorInstance(): Migrator {
+    return this.migrator;
+  }
+
   async migrate() {
     this.logger.info('Migrating database...');
-    this.logger.info('Migrating database finished');
+
+    const { error, results } = await this.migrator.migrateToLatest();
+
+    results?.forEach((it) => {
+      if (it.status === 'Success') {
+        this.logger.info(`migration "${it.migrationName}" was executed successfully`);
+      } else if (it.status === 'Error') {
+        this.logger.error(`failed to execute migration "${it.migrationName}"`);
+      }
+    });
+
+    if (error) {
+      this.logger.error('Migrating database failed');
+      this.logger.error(error);
+    } else {
+      this.logger.info('Migrating database finished');
+    }
+  }
+
+  async close() {
+    await this.db.destroy();
   }
 }

@@ -18,7 +18,7 @@ import closeWithGrace from 'close-with-grace';
     if (err) logger.fatal(err);
     else logger.info(`${signal} received, stopping server...`);
 
-    await pgStore.database.destroy();
+    await pgStore.close();
     await api.close();
   });
 })();

@@ -5,6 +5,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "nodemon --exec ts-node src/server.ts | pino-pretty -c -t",
+    "migration:create": "ts-node src/infra/store/pg/migration-create.ts | pino-pretty -c -t",
+    "migration:up": "ts-node src/infra/store/pg/migrate-up.ts | pino-pretty -c -t",
+    "migration:down": "ts-node src/infra/store/pg/migrate-down.ts | pino-pretty -c -t",
     "build": "tsc"
   },
   "keywords": [],
